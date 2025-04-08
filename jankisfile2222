@@ -4,66 +4,120 @@ pipeline {
     parameters {
         string(name: 'Nom', defaultValue: '', description: 'Entrez votre nom')
         string(name: 'Prénom', defaultValue: '', description: 'Entrez votre prénom')
-        choice(name: 'Mois de naissance', 
-            choices: ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 
-                      'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'], 
-            description: 'Sélectionnez votre mois de naissance')
-        choice(name: 'Jour de naissance', 
-            choices: ['01', '02', '03', '04', '05', '06', '07', '08', '09', 
-                      '10', '11', '12', '13', '14', '15', '16', '17', 
-                      '18', '19', '20', '21', '22', '23', '24', 
-                      '25', '26', '27', '28', '29', '30', '31'], 
-            description: "Sélectionnez votre jour de naissance")
-        choice(name: "Année de naissance", 
-            choices: (1900..2025).collect { it.toString() }.reverse(), 
-            description: "Sélectionnez votre année de naissance")
+
+        // Liste déroulante pour le mois
+        choice(name: 'Mois de naissance', choices: ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'], description: 'Sélectionnez votre mois de naissance')
+
+        // Liste déroulante pour le jour (générée dynamiquement)
+        activeChoice(name: 'Jour de naissance') {
+            groovyScript {
+                script = '''
+                    def daysInMonth = [JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30, MAI: 31, JUIN: 30, JUILLET: 31, AOUT: 31, SEPTEMBRE: 30, OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31]
+                    def month = params['Mois de naissance']
+                    (1..daysInMonth[month]).collect { it.toString().padLeft(2, '0') }
+                '''
+            }
+        }
+
+        // Liste déroulante pour l'année
+        choice(name: 'Année de naissance', choices: (1900..2025).collect { it.toString() }.reverse(), description: 'Sélectionnez votre année de naissance')
+
+        // Date actuelle
+        choice(name: 'Mois Actuel', choices: ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'], description: 'Sélectionnez le mois actuel')
+        activeChoice(name: 'Jour Actuel') {
+            groovyScript {
+                script = '''
+                    def daysInMonth = [JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30, MAI: 31, JUIN: 30, JUILLET: 31, AOUT: 31, SEPTEMBRE: 30, OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31]
+                    def month = params['Mois Actuel']
+                    (1..daysInMonth[month]).collect { it.toString().padLeft(2, '0') }
+                '''
+            }
+        }
     }
 
     stages {
         stage('Vérification Anniversaire') {
             steps {
                 script {
-                    def now = new Date()
-                    def currentDay = now.format('dd')
-                    def currentMonth = now.format('MMMM').toUpperCase()
-                    def currentYear = now.format('yyyy').toInteger()
+                    def today = "${params.'Jour Actuel'}"
+                    def month = "${params.'Mois Actuel'}"
+                    def birthDay = "${params.'Jour de naissance'}"
+                    def birthMonth = "${params.'Mois de naissance'}"
+                    def birthYear = "${params.'Année de naissance'}"
+                    def currentYear = new Date().format('yyyy').toInteger()
 
-                    if ((params.'Jour de naissance' == currentDay) && (params.'Mois de naissance' == currentMonth)) {
-                        def age = currentYear - params.'Année de naissance'.toInteger()
-                        echo "\uD83C\uDF89 Joyeux Anniversaire ${params.Pr\u00E9nom} ${params.Nom} ! Tu as maintenant ${age} ans ! \uD83C\uDF82"
+                    if ((today == birthDay) && (month == birthMonth)) {
+                        echo "🎉 Joyeux Anniversaire ${params.Prénom} ${params.Nom} ! Tu as maintenant ${currentYear - birthYear.toInteger()} ans ! 🎂"
                     } else {
-                        echo "Ce n'est pas encore ton anniversaire aujourd'hui."
+                        echo "Ce n'est pas encore ton anniversaire."
                     }
                 }
             }
         }
 
         stage('Objectifs Mensuels') {
-            steps {
-                script {
-                    def month = new Date().format('MMMM').toUpperCase()
-                    def day = new Date().format('dd')
-                    checkMonthlyObjectives(month, day)
+            parallel {
+                stage('Objectifs de Janvier') {
+                    steps {
+                        script {
+                            checkMonthlyObjectives('JANVIER')
+                        }
+                    }
                 }
+                stage('Objectifs de Février') {
+                    steps {
+                        script {
+                            checkMonthlyObjectives('FEVRIER')
+                        }
+                    }
+                }
+                stage('Objectifs de Mars') {
+                    steps {
+                        script {
+                            checkMonthlyObjectives('MARS')
+                        }
+                    }
+                }
+                // Ajoutez d'autres mois ici si nécessaire
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs() // Nettoyage du workspace après chaque exécution
         }
     }
 }
 
-def checkMonthlyObjectives(String month, String day) {
-    def dayInt = day.toInteger()
-    def daysInMonth = [
-        JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30,
-        MAI: 31, JUIN: 30, JUILLET: 31, AOUT: 31,
-        SEPTEMBRE: 30, OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31
-    ]
+def checkMonthlyObjectives(String month) {
+    def dayInt = params.'Jour Actuel'.toInteger()
+    def daysInMonth = [JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30, MAI: 31,
+                       JUIN: 30, JUILLET: 31, AOUT: 31, SEPTEMBRE: 30,
+                       OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31]
 
-    if (dayInt >= 1 && dayInt <= 15) {
-        echo "Vous avez des nouveaux objectifs pour ce mois-ci ! Voici la liste : "
-    } else if (dayInt > 15 && dayInt <= daysInMonth[month]) {
-        def remainingDays = daysInMonth[month] - dayInt
-        echo "Il ne vous reste que ${remainingDays} jours pour accomplir vos objectifs. Courage \uD83D\uDCAA!"
+    if (month == params.'Mois Actuel') {
+        if (dayInt >= 1 && dayInt <= daysInMonth[month]) {
+            echo "Voici vos objectifs pour ${month} :"
+            switch (month) {
+                case "JANVIER":
+                    echo "- Reconstruire l'arrêt de bus."
+                    echo "- Identifier les lignes de bus à proximité."
+                    break
+                case "FEVRIER":
+                    echo "- Obtenir le CCNA à 97%."
+                    echo "- Ajouter une adresse IP sur le switch."
+                    break
+                case "MARS":
+                    echo "- Reconstruire le lit de Martin."
+                    break
+                default:
+                    echo "Aucun objectif défini pour ce mois."
+            }
+        } else {
+            echo "Le jour actuel est en dehors des limites du mois."
+        }
     } else {
-        echo "Date invalide ou hors limites."
+        echo "Ce n'est pas le mois correspondant à vos objectifs."
     }
 }
