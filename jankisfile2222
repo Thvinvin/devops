@@ -19,7 +19,7 @@ pipeline {
                                      (params.'Mois Actuel' == params.'Mois de naissance')
                     if (isBirthday) {
                         def age = new Date().format('yyyy').toInteger() - params.'Année de naissance'.toInteger()
-                        echo "🎉 Joyeux Anniversaire ${params.Prénom} ${params.Nom} ! Tu as maintenant ${age} ans ! 🎂"
+                        echo "Joyeux Anniversaire ${params.Prénom} ${params.Nom} ! Tu as maintenant ${age} ans !"
                     }
                 }
             }
