@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'Nom', defaultValue: '', description: 'Entrez votre nom')
+        string(name: 'Prénom', defaultValue: '', description: 'Entrez votre prénom')
+        choice(name: 'Mois de naissance', choices: monthsList(), description: 'Sélectionnez votre mois de naissance')
+        choice(name: 'Jour de naissance', choices: daysList(), description: 'Sélectionnez votre jour de naissance')
+        choice(name: 'Année de naissance', choices: yearsList(), description: 'Sélectionnez votre année de naissance')
+        choice(name: 'Mois Actuel', choices: monthsList(), description: 'Sélectionnez le mois actuel')
+        choice(name: 'Jour Actuel', choices: daysList(), description: 'Sélectionnez le jour actuel')
+    }
+
+    stages {
+        stage('Vérification Anniversaire') {
+            steps {
+                script {
+                    def isBirthday = (params.'Jour Actuel' == params.'Jour de naissance') && 
+                                     (params.'Mois Actuel' == params.'Mois de naissance')
+                    if (isBirthday) {
+                        def age = new Date().format('yyyy').toInteger() - params.'Année de naissance'.toInteger()
+                        echo "🎉 Joyeux Anniversaire ${params.Prénom} ${params.Nom} ! Tu as maintenant ${age} ans ! 🎂"
+                    }
+                }
+            }
+        }
+
+        stage('Objectifs Mensuels') {
+            parallel {
+                stage("Objectifs du Mois Actuel") {
+                    steps {
+                        script {
+                            checkMonthlyObjectives(params.'Mois Actuel', params.'Jour Actuel')
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+def monthsList() {
+    return ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 
+            'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE']
+}
+
+def daysList() {
+    return (1..31).collect { it.toString().padLeft(2, '0') }
+}
+
+def yearsList() {
+    return (1900..2025).collect { it.toString() }.reverse()
+}
+
+def checkMonthlyObjectives(String month, String day) {
+    def dayInt = day.toInteger()
+    def daysInMonth = [JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30, MAI: 31, JUIN: 30,
+                       JUILLET: 31, AOUT: 31, SEPTEMBRE: 30, OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31]
+
+    if (dayInt >= 1 && dayInt <= 15) {
+        echo "Vous avez des nouveaux objectifs pour ce mois-ci ! Voici la liste : "
+    } else if (dayInt > 15 && dayInt <= daysInMonth[month.toUpperCase()]) {
+        def remainingDays = daysInMonth[month.toUpperCase()] - dayInt
+        echo "Il ne vous reste que ${remainingDays} jours pour accomplir vos objectifs. Courage 💪!"
+    }
+}
+
