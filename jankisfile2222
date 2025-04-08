@@ -4,42 +4,25 @@ pipeline {
     parameters {
         string(name: 'Nom', defaultValue: '', description: 'Entrez votre nom')
         string(name: 'Prénom', defaultValue: '', description: 'Entrez votre prénom')
-        choice(name: 'Mois de naissance', choices: ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 
-                                                    'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'], 
-               description: 'Sélectionnez votre mois de naissance')
-        choice(name: 'Jour de naissance', choices: (1..31).collect { it.toString().padLeft(2, '0') }, 
-               description: 'Sélectionnez votre jour de naissance')
-        choice(name: 'Année de naissance', choices: (1900..2025).collect { it.toString() }.reverse(), 
-               description: "Sélectionnez votre année de naissance")
+        choice(name: 'Mois de naissance', choices: ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'], description: 'Sélectionnez votre mois de naissance')
+        choice(name: 'Jour de naissance', choices: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31'], description: 'Sélectionnez votre jour de naissance')
+        choice(name: 'Ann\u00E9e de naissance', choices: (1900..2025).collect { it.toString() }.reverse(), description: 'S\u00E9lectionnez votre ann\u00E9e de naissance')
     }
 
     stages {
-        stage('Récupération de la date actuelle') {
-            steps {
-                script {
-                    // Récupérer la date actuelle
-                    def now = new Date()
-                    env.CURRENT_DAY = now.format('dd') // Jour actuel (ex : 08)
-                    env.CURRENT_MONTH = now.format('MMMM').toUpperCase() // Mois actuel (ex : AVRIL)
-                    env.CURRENT_YEAR = now.format('yyyy') // Année actuelle (ex : 2025)
-                }
-            }
-        }
-
         stage('Vérification Anniversaire') {
             steps {
                 script {
-                    def today = env.CURRENT_DAY
-                    def month = env.CURRENT_MONTH
-                    def birthDay = params.'Jour de naissance'
-                    def birthMonth = params.'Mois de naissance'
-                    def birthYear = params.'Année de naissance'
+                    def now = new Date()
+                    def currentDay = now.format('dd')
+                    def currentMonth = now.format('MMMM').toUpperCase()
+                    def currentYear = now.format('yyyy').toInteger()
 
-                    if ((today == birthDay) && (month == birthMonth)) {
-                        def age = env.CURRENT_YEAR.toInteger() - birthYear.toInteger()
+                    def isBirthday = (params.'Jour de naissance' == currentDay) && (params.'Mois de naissance' == currentMonth)
+                    
+                    if (isBirthday) {
+                        def age = currentYear - params.'Année de naissance'.toInteger()
                         echo "\uD83C\uDF89 Joyeux Anniversaire ${params.Pr\u00E9nom} ${params.Nom} ! Tu as maintenant ${age} ans ! \uD83C\uDF82"
-                    } else {
-                        echo "Ce n'est pas encore ton anniversaire aujourd'hui."
                     }
                 }
             }
@@ -50,7 +33,9 @@ pipeline {
                 stage("Objectifs du Mois Actuel") {
                     steps {
                         script {
-                            checkMonthlyObjectives(env.CURRENT_MONTH, env.CURRENT_DAY)
+                            def month = new Date().format('MMMM').toUpperCase()
+                            def day = new Date().format('dd')
+                            checkMonthlyObjectives(month, day)
                         }
                     }
                 }
@@ -61,15 +46,16 @@ pipeline {
 
 def checkMonthlyObjectives(String month, String day) {
     def dayInt = day.toInteger()
-    def daysInMonth = [JANVIER: 31, FEVRIER: 28, MARS: 31, AVRIL: 30, MAI: 31, JUIN: 30,
-                       JUILLET: 31, AOUT: 31, SEPTEMBRE: 30, OCTOBRE: 31, NOVEMBRE: 30, DECEMBRE: 31]
+    def daysInMonth = [
+        'JANVIER': 31, 'FEVRIER': 28, 'MARS': 31, 'AVRIL': 30,
+        'MAI': 31, 'JUIN': 30, 'JUILLET': 31, 'AOUT': 31,
+        'SEPTEMBRE': 30, 'OCTOBRE': 31, 'NOVEMBRE': 30, 'DECEMBRE': 31
+    ]
 
     if (dayInt >= 1 && dayInt <= 15) {
         echo "Vous avez des nouveaux objectifs pour ce mois-ci ! Voici la liste : "
-    } else if (dayInt > 15 && dayInt <= daysInMonth[month.toUpperCase()]) {
-        def remainingDays = daysInMonth[month.toUpperCase()] - dayInt
+    } else if (dayInt > 15 && dayInt <= daysInMonth[month]) {
+        def remainingDays = daysInMonth[month] - dayInt
         echo "Il ne vous reste que ${remainingDays} jours pour accomplir vos objectifs. Courage \uD83D\uDCAA!"
-    } else {
-        echo "Date invalide ou hors limites."
     }
 }
