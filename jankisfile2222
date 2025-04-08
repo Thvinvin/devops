@@ -12,7 +12,7 @@ pipeline {
     }
 
     stages {
-        stage('Vérification Anniversaire') {
+        stage('V\u00E9rification Anniversaire') {
             steps {
                 script {
                     def isBirthday = (params.'Jour Actuel' == params.'Jour de naissance') && 
