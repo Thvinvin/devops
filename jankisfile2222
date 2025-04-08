@@ -19,7 +19,7 @@ pipeline {
                                      (params.'Mois Actuel' == params.'Mois de naissance')
                     if (isBirthday) {
                         def age = new Date().format('yyyy').toInteger() - params.'Année de naissance'.toInteger()
-                        echo "Joyeux Anniversaire ${params.Prénom} ${params.Nom} ! Tu as maintenant ${age} ans !"
+                        echo "\uD83C\uDF89 Joyeux Anniversaire ${params.Pr\u00E9nom} ${params.Nom} ! Tu as maintenant ${age} ans ! \uD83C\uDF82"
                     }
                 }
             }
@@ -61,7 +61,6 @@ def checkMonthlyObjectives(String month, String day) {
         echo "Vous avez des nouveaux objectifs pour ce mois-ci ! Voici la liste : "
     } else if (dayInt > 15 && dayInt <= daysInMonth[month.toUpperCase()]) {
         def remainingDays = daysInMonth[month.toUpperCase()] - dayInt
-        echo "Il ne vous reste que ${remainingDays} jours pour accomplir vos objectifs. Courage 💪!"
+        echo "Il ne vous reste que ${remainingDays} jours pour accomplir vos objectifs. Courage \uD83D\uDCAA!"
     }
 }
-
